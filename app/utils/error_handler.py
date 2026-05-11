@@ -8,7 +8,7 @@ from app.models.manual_review import ManualReview, ReviewStatus
 
 def handle_workflow_error(
     db: Session,
-    workflow_type: str,  # "order", "refund", "lead", "email"
+    workflow_type: str,
     entity_id: Optional[int],
     step_name: str,
     error_type: str,
@@ -38,7 +38,8 @@ def handle_workflow_error(
     # Create manual review for critical errors
     manual_review = None
     
-    if is_critical or error_type in ["api_failure", "database_error", "integration_failure"]:
+    # ✅ FIXED: Proper indentation after 'if'
+    if is_critical or error_type in ["api_failure", "database_error", "integration_failure", "payment_failure", "duplicate_entry"]:
         manual_review = ManualReview(
             error_log_id=error_log.id,
             workflow_type=workflow_type,

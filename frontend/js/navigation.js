@@ -1,8 +1,6 @@
 // frontend/js/navigation.js
-// Centralized role-based navigation and user profile management
 
 window.BizLinkNav = {
-    // Menu configuration by role
     menuConfig: {
         admin: {
             menu: [
@@ -14,26 +12,26 @@ window.BizLinkNav = {
             management: [
                 { icon: '🔍', label: 'Manual Reviews', href: 'reviews.html', roles: ['admin', 'manager'] },
                 { icon: '📧', label: 'Scheduled Emails', href: 'scheduled-emails.html', roles: ['admin', 'manager'] },
-                { icon: '⚠️', label: 'Error Logs', href: 'errors.html', roles: ['admin', 'manager', 'operator'] },
+                { icon: '️', label: 'Error Logs', href: 'errors.html', roles: ['admin', 'manager', 'operator'] },
             ],
             others: [
-                { icon: '⚙️', label: 'Settings', href: 'settings.html', roles: ['admin', 'manager'] },
+                { icon: '⚙️', label: 'Settings', href: 'settings.html', roles: ['admin'] } // Only Admin gets Settings
             ]
         },
         manager: {
             menu: [
                 { icon: '📊', label: 'Dashboard', href: 'dashboard-manager.html', roles: ['admin', 'manager'] },
                 { icon: '📦', label: 'Orders', href: 'orders.html', roles: ['admin', 'manager', 'operator'] },
-                { icon: '💸', label: 'Refund', href: 'refunds.html', roles: ['admin', 'manager'] },
+                { icon: '', label: 'Refund', href: 'refunds.html', roles: ['admin', 'manager'] },
                 { icon: '👥', label: 'Leads', href: 'leads.html', roles: ['admin', 'manager', 'operator'] },
             ],
             management: [
                 { icon: '🔍', label: 'Manual Reviews', href: 'reviews.html', roles: ['admin', 'manager'] },
-                { icon: '📧', label: 'Scheduled Emails', href: 'scheduled-emails.html', roles: ['admin', 'manager'] },
                 { icon: '⚠️', label: 'Error Logs', href: 'errors.html', roles: ['admin', 'manager', 'operator'] },
             ],
             others: [
-                { icon: '⚙️', label: 'Settings', href: 'settings.html', roles: ['admin', 'manager'] },
+                // Manager can access settings but "Team Management" tab is hidden inside
+                { icon: '⚙️', label: 'Settings', href: 'settings.html', roles: ['admin', 'manager'] }
             ]
         },
         operator: {
@@ -45,11 +43,10 @@ window.BizLinkNav = {
             management: [
                 { icon: '⚠️', label: 'Error Logs', href: 'errors.html', roles: ['admin', 'manager', 'operator'] },
             ],
-            others: []
+            others: [] // Operators DO NOT see Settings
         }
     },
 
-    // Initialize navigation and user profile - call this ONCE per page
     init() {
         const user = BizLinkAuth.getUser();
         const role = user.role || 'operator';
@@ -58,7 +55,6 @@ window.BizLinkNav = {
         this.initUserProfile(user);
     },
 
-    // Render role-appropriate sidebar navigation
     renderSidebar(role) {
         const config = this.menuConfig[role] || this.menuConfig.operator;
         const nav = document.querySelector('nav');
@@ -66,59 +62,52 @@ window.BizLinkNav = {
 
         let html = '<p class="px-4 text-xs font-semibold text-biz-muted uppercase mb-2">Menu</p>';
 
-        // Render main menu items
         config.menu.forEach(item => {
-            const isActive = window.location.pathname.includes(item.href) ||
-                window.location.href.includes(item.href);
-            html += `
-                <a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}">
-                    ${item.icon} ${item.label}
-                </a>
-            `;
+            const isActive = window.location.pathname.includes(item.href) || window.location.href.includes(item.href);
+            html += `<a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}">${item.icon} ${item.label}</a>`;
         });
 
-        // Render management section if items exist
-        if (config.management && config.management.length > 0) {
+        if (config.management.length > 0) {
             html += '<p class="px-4 text-xs font-semibold text-biz-muted uppercase mt-6 mb-2">Management</p>';
             config.management.forEach(item => {
-                const isActive = window.location.pathname.includes(item.href) ||
-                    window.location.href.includes(item.href);
-                html += `
-                    <a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}">
-                        ${item.icon} ${item.label}
-                    </a>
-                `;
+                const isActive = window.location.pathname.includes(item.href) || window.location.href.includes(item.href);
+                html += `<a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}">${item.icon} ${item.label}</a>`;
             });
         }
 
-        // Render others section if items exist
-        if (config.others && config.others.length > 0) {
+        if (config.others.length > 0) {
             html += '<p class="px-4 text-xs font-semibold text-biz-muted uppercase mt-6 mb-2">Others</p>';
             config.others.forEach(item => {
-                const isActive = window.location.pathname.includes(item.href) ||
-                    window.location.href.includes(item.href);
-                html += `
-                    <a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}" id="settings-link">
-                        ${item.icon} ${item.label}
-                    </a>
-                `;
+                const isActive = window.location.pathname.includes(item.href) || window.location.href.includes(item.href);
+                html += `<a href="${item.href}" class="nav-link ${isActive ? 'active' : ''}" id="settings-link">${item.icon} ${item.label}</a>`;
             });
         }
 
         nav.innerHTML = html;
     },
 
-    // Initialize user profile display - consistent across all pages
+    // ✅ NEW: Logic to generate initials (1, 2, or 3 letters)
+    getInitials(name) {
+        if (!name) return 'U';
+        const parts = name.trim().split(' ');
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase(); // "Dexter" -> DE
+        if (parts.length === 2) return (parts[0][0] + parts[1][0]).toUpperCase(); // "Dexter Morgan" -> DM
+        // "Fahad Hasan Mahi" -> F, H, M -> FHM
+        return parts.map(p => p[0]).join('').substring(0, 3).toUpperCase();
+    },
+
     initUserProfile(user) {
         const role = user.role || 'operator';
         const roleName = role.charAt(0).toUpperCase() + role.slice(1);
-        const initial = (user.name || user.email?.charAt(0) || 'U').toUpperCase();
+
+        // ✅ Use the new getInitials function
+        const initials = this.getInitials(user.name);
 
         const updates = [
             { id: 'user-name', value: user.name || 'User' },
             { id: 'user-role', value: `${roleName} Workspace` },
-            { id: 'user-avatar', value: initial },
-            { id: 'header-avatar', value: initial }
+            { id: 'user-avatar', value: initials },
+            { id: 'header-avatar', value: initials }
         ];
 
         updates.forEach(({ id, value }) => {
@@ -129,12 +118,10 @@ window.BizLinkNav = {
         });
     },
 
-    // Helper: Get current user role
     getCurrentRole() {
         return BizLinkAuth.getRole();
     },
 
-    // Helper: Check if current user has access to a feature
     hasAccess(requiredRoles) {
         const role = this.getCurrentRole();
         return requiredRoles.includes(role);
